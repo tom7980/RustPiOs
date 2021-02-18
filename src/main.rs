@@ -1,6 +1,7 @@
 #![no_main]
 #![no_std]
 #![feature(lang_items)]
+#![feature(const_fn_fn_ptr_basics)]
 
 mod pi;
 mod panic_wait;
@@ -21,8 +22,8 @@ fn kernel_init() -> ! {
 
     loop {
         unsafe {GPSET0.write_volatile(1 << 16)};
-        arch::cpu::spin_for_cycles(DELAY);
+        pi::drivers::timer::spin_sleep_ms(1000);
         unsafe {GPCLR0.write_volatile(1 << 16)};
-        arch::cpu::spin_for_cycles(DELAY);
+        pi::drivers::timer::spin_sleep_ms(1000);
     };
 }
