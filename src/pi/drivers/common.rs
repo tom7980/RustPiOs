@@ -1,34 +1,34 @@
-use core::{marker::PhantomData, ops};
+use core::ops::Deref;
 
-///Module creates a wrapper around a set of registers that implicitly dereferences to a constant containing the wrapped block of registers
-///Can be used to create a single static reference to an MMIO device
-///Requires device to implement a const unsafe fn creating a new instance of this type i.e
-/// ```
-/// pub const unsafe fn new (mmio_start_address: usize) -> Self {
-///    Self {
-///        registers: MMIODerefWrapper<RegisterBlock>::new(mmio_start_address),
-///    }
-/// }
-/// ```
-/// This can then be initialized as a static reference by creating a static variable and running this function
-pub struct MMIODerefWrapper<T> {
-    start_addr: usize,
-    phantom: PhantomData<fn() -> T>
+///Static reference initialization using a wrapper type
+
+#[derive(Debug)]
+pub struct StaticRef<T> {
+    ptr: *const T,
 }
 
-impl<T> MMIODerefWrapper<T> {
-    pub const unsafe fn new(start_addr: usize) -> Self {
-        Self{
-            start_addr,
-            phantom: PhantomData,
-        }
+impl<T> StaticRef<T> {
+    /// New static reference
+    ///
+    /// ## Saftey
+    ///
+    /// Calls to this must ensure memory is static and does not overlap
+    pub const unsafe fn new(ptr: *const T) -> StaticRef<T> {
+        StaticRef { ptr }
     }
 }
 
-impl<T> ops::Deref for MMIODerefWrapper<T> {
-    type Target = T;
+impl<T> Clone for StaticRef<T> {
+    fn clone(&self) -> Self {
+        StaticRef { ptr: self.ptr}
+    }
+}
 
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(self.start_addr as *const _) }
+impl<T> Copy for StaticRef<T> {}
+
+impl<T> Deref for StaticRef<T> {
+    type Target = T;
+    fn deref(&self) -> &'static T {
+        unsafe { &*self.ptr }
     }
 }

@@ -1,11 +1,12 @@
 use crate::pi::memory;
+use super::common::StaticRef;
 use tock_registers::{register_bitfields, register_structs};
 use tock_registers::registers::*;
 
 register_bitfields!{
     u32,
 
-    ///Actually W1C register, write 1 to clear, read to check timer comparisons.
+    ///Actually W1C registers, write 1 to clear, read to check timer comparisons.
     CS [
         M3 OFFSET(3) NUMBITS(1) [
             NoMatch = 0,
@@ -56,21 +57,24 @@ register_structs! {
     }
 }
 
-struct Timer {
-    registers: &'static mut TimerBlock
+pub struct Timer {
+    registers: StaticRef<TimerBlock>
 }
 
 ///Wrapper for concurrent access once I implement a Mutex or lock type
 ///currently useless but it's nice to plan ahead
-///TO-DO implement some way to get single static reference to timer registers
 pub struct TimerDevice {
     inner: Timer,
 }
 
 impl Timer {
-    pub fn new() -> Timer {
+    /// Constant function allows me to instantiate system timer a single time
+    /// and use it as a reference
+    pub const fn new() -> Timer {
         Timer{
-            registers: unsafe { &mut *(memory::map::TIMER_START as *mut TimerBlock) },
+            registers: unsafe { 
+                StaticRef::new(memory::map::TIMER_START as *const TimerBlock)
+            },
         }
     }
 
@@ -90,10 +94,14 @@ impl TimerDevice {
     }
 }
 
+///Initialization of system timer available outside of this crate
+
+pub const SYSTEM_TIMER: Timer = Timer::new();
+
 pub fn spin_sleep_us(delay: u64) {
-    let old = Timer::new().read();
+    let old = SYSTEM_TIMER.read();
     loop{
-        let new = Timer::new().read();
+        let new = SYSTEM_TIMER.read();
         if old + delay <= new {
             break;
         }
