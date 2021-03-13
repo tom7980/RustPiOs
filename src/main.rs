@@ -20,6 +20,7 @@ fn kernel_init() -> ! {
 
     loop {
         // uart.write_str("Hello").expect("No");
-        uart.write_str("abcdefghijklmnopqrstuvwxyz").unwrap();
+        uart.write_str("Hello").unwrap();
+        pi::drivers::timer::spin_sleep_ms(100);
     };
 }
