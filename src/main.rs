@@ -3,22 +3,23 @@
 #![feature(lang_items)]
 #![feature(const_fn_fn_ptr_basics)]
 
+use core::fmt::Write;
+
 mod pi;
 mod panic_wait;
 mod arch;
 mod runtime_init;
 mod memory;
+// mod console;
 
 fn kernel_init() -> ! {
 
-    let mut pin_16 = pi::drivers::gpio::GpioPin::new(16);
-    pin_16 = pin_16.into_output();
+    let mut uart = pi::drivers::uart::MiniUart::new();
+    uart.init();
 
 
     loop {
-        pin_16.set();
-        pi::drivers::timer::spin_sleep_ms(1000);
-        pin_16.clear();
-        pi::drivers::timer::spin_sleep_ms(1000);
+        // uart.write_str("Hello").expect("No");
+        uart.write_str("abcdefghijklmnopqrstuvwxyz").unwrap();
     };
 }

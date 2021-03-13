@@ -41,7 +41,7 @@ impl<T> GpioPin<T>{
     }
 }
 
-impl<Uninitialized> GpioPin<Uninitialized> {
+impl GpioPin<Uninitialized> {
     pub fn new(pin: u8) -> GpioPin<Uninitialized> {
         GpioPin {
             pin,
@@ -89,7 +89,31 @@ impl GpioPin<Input> {
     }
 }
 
-
+impl GpioPin<Alt> {
+    pub fn set_no_pud(&mut self) {
+        let register = self.pin/16;
+        let pin = self.pin % 16;
+        match pin {
+            0 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD00::NoResistor),
+            1 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD01::NoResistor),
+            2 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD02::NoResistor),
+            3 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD03::NoResistor),
+            4 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD04::NoResistor),
+            5 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD05::NoResistor),
+            6 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD06::NoResistor),
+            7 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD07::NoResistor),
+            8 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD08::NoResistor),
+            9 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD09::NoResistor),
+            10 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD10::NoResistor),
+            11 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD11::NoResistor),
+            12 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD12::NoResistor),
+            13 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD13::NoResistor),
+            14 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD14::NoResistor),
+            15 => self.registers.gppupdx[register as usize].write(GPPUPDX::GPPUPD15::NoResistor),
+            _ => panic!("No more pins")
+        }
+    }
+}
 
 register_structs!{
     GpioRegisters{
@@ -261,13 +285,13 @@ register_bitfields!{
             PullUp      = 0b10,
             Reserved    = 0b11
         ],
-        GPPUPD014 OFFSET(28) NUMBITS(2) [
+        GPPUPD14 OFFSET(28) NUMBITS(2) [
             NoResistor  = 0b00,
             PullDown    = 0b01,
             PullUp      = 0b10,
             Reserved    = 0b11
         ],
-        GPPUPD015 OFFSET(30) NUMBITS(2) [
+        GPPUPD15 OFFSET(30) NUMBITS(2) [
             NoResistor  = 0b00,
             PullDown    = 0b01,
             PullUp      = 0b10,

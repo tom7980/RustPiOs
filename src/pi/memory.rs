@@ -1,19 +1,26 @@
 use core::{cell::UnsafeCell, ops::RangeInclusive};
 
+/// Grab them BSS section memory locations from the linker please.
 extern "Rust" {
     static __bss_start: UnsafeCell<u64>;
     static __bss_end_inclusive: UnsafeCell<u64>;
 }
 
 pub(super) mod map {
+    use core::usize;
+
     pub const BOOT_CORE_STACK_END: usize    = 0x0008_0000;
     pub const IO_BASE: usize                = 0xFE00_0000;
 
     pub const GPIO_OFFSET: usize            = 0x0020_0000;
     pub const TIMER_OFFSET: usize           = 0x0000_3000;
 
+    /// Auxiliary peripherals: Mini UART, SPI1 & SPI2
+    pub const AUX_OFFSET: usize             = 0x0021_5000;
+
     pub const GPIO_START: usize             = IO_BASE + GPIO_OFFSET;
     pub const TIMER_START: usize            = IO_BASE + TIMER_OFFSET;
+    pub const AUX_START: usize              = IO_BASE + AUX_OFFSET;
 }
 
 #[inline(always)]
