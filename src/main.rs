@@ -20,9 +20,21 @@ fn kernel_init() -> ! {
     uart.init();
 
     // let mut pin16 = pi::drivers::gpio::GpioPin::new(16).into_output();
-    loop {uart.write_byte(0xAA);}
+    // loop {uart.write_byte(0xA9);}
 
-    
+    // This apparently works for some reason
+    // loop {
+    //     for _ in 0..9 {uart.write_byte(0xFF);}
+        
+    //     for i in 0..254 {
+    //         uart.write_byte(i);
+    //     }
+    // }
+
+
+    loop {
+        uart.echo();
+    }
 
     // loop {
     //     for i in 1..9 {
