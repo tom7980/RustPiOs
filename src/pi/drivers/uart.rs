@@ -26,7 +26,7 @@ impl MiniUart {
         self.registers.auxenable.write(AUXENABLE::UART::SET);
         self.registers.ier.set(0);
         self.registers.cntl.set(0);
-        self.registers.lcr.set(0b11);
+        self.registers.lcr.set(3);
         self.registers.mcr.set(0);
         self.registers.ier.set(0);
 
@@ -55,13 +55,13 @@ impl MiniUart {
     pub fn read_byte(&mut self) -> u8 {
         while !self.has_byte() {};
         // I don't like this but all input from this register should be able to fit in a u8 so cast it
-        self.registers.io.read(IO::RX) as u8
+        self.registers.io.read(IO::IO)
     }
 
     pub fn echo(&mut self) {
         while !self.has_byte() {};
-        let temp = self.registers.io.read(IO::RX);
-        self.registers.io.write(IO::TX.val(temp));
+        let temp = self.registers.io.read(IO::IO);
+        self.registers.io.write(IO::IO.val(temp));
     }
 }
 
@@ -102,8 +102,7 @@ register_bitfields!{
     u8,
 
     IO [
-        TX OFFSET(0) NUMBITS(8) [],
-        RX OFFSET(0) NUMBITS(8) []
+        IO OFFSET(0) NUMBITS(8) []
     ]
 }
 
@@ -128,12 +127,6 @@ register_bitfields!{
     IIR [
         // Clear if interrupt is pending
         PENDING OFFSET(0) NUMBITS(1) [],
-        // Read for interrupts
-        INTERRUPT OFFSET(1) NUMBITS(2) [
-            NoInter = 0b00,
-            TxInter = 0b01,
-            RxInter = 0b10
-        ],
         // Write to clear FIFO buffers
         CLEAR OFFSET(1) NUMBITS(2) [
             TxClr = 0b01,
