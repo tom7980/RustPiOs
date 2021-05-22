@@ -10,3 +10,5 @@ edition = "2018"
 
 tock-registers = { version = "0.6.x" }
 cortex-a = { version = "5.x.x" }
+spin = { version = "0.9.x" }
+staticvec = { version = "0.10.6", default-features = false }

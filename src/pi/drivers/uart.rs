@@ -1,13 +1,14 @@
 // I should probably make this the Auxillary peripherals module but I'm only going to do
 // MiniUart for now so I can start chainloading my kernel
 
-use crate::pi::memory;
-use super::common::StaticRef;
+use crate::{console::{ConsoleError, ConsoleErrorKind}, pi::memory};
+use super::{common::StaticRef, timer::SYSTEM_TIMER};
 use tock_registers::{register_bitfields, register_structs};
 use tock_registers::registers::*;
 use super::gpio::*;
+use spin::Mutex;
 
-use core::fmt;
+use core::fmt::{self, Write};
 
 pub struct MiniUart {
     registers: StaticRef<MiniRegisters>,
@@ -15,7 +16,7 @@ pub struct MiniUart {
 }
 
 impl MiniUart {
-    pub fn new() -> MiniUart {
+    pub const unsafe fn new() -> MiniUart {
         MiniUart{
             registers: unsafe { StaticRef::new(memory::map::AUX_START as *const MiniRegisters) },
             timeout: None
@@ -43,9 +44,35 @@ impl MiniUart {
         self.registers.cntl.modify(CNTL::RXENABLE::SET + CNTL::TXENABLE::SET);
     }
 
+    pub fn timeout(&mut self, ms: u32) {
+        self.timeout = Some(ms);
+    }
+
     pub fn write_byte(&mut self, byte: u8) {
         while !self.registers.lsr.matches_any(LSR::TXEMPTY::SET) {};
         self.registers.io.set(byte);
+    }
+
+    pub fn wait_for_byte(&self) -> Result<(), ()> {
+        match self.timeout {
+            None => {
+                loop{
+                    if self.has_byte(){
+                        return Ok(())
+                    }
+                }
+            },
+            Some(timeout) => {
+                let time = SYSTEM_TIMER.read();
+                let deadline = time + (timeout as u64) * 1000;
+                while deadline >= SYSTEM_TIMER.read() {
+                    if self.has_byte(){
+                        return Ok(())
+                    }
+                }
+                Err(())
+            }
+        }
     }
 
     pub fn has_byte(&self) -> bool {
@@ -54,14 +81,20 @@ impl MiniUart {
 
     pub fn read_byte(&mut self) -> u8 {
         while !self.has_byte() {};
-        // I don't like this but all input from this register should be able to fit in a u8 so cast it
         self.registers.io.read(IO::IO)
     }
 
+    // Helper function to test UART debugging
     pub fn echo(&mut self) {
         while !self.has_byte() {};
         let temp = self.registers.io.read(IO::IO);
-        self.registers.io.write(IO::IO.val(temp));
+        match temp {
+            b'\n' | b'\r' => {
+                self.write_byte(b'\r');
+                self.write_byte(b'\n');
+            },
+            _ => self.write_byte(temp)
+        }
     }
 }
 
@@ -69,12 +102,76 @@ impl fmt::Write for MiniUart {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for byte in s.bytes() {
             match byte {
-                b'\n' => self.write_byte(b'\r'),
+                b'\n' | b'\r' => {
+                    self.write_byte(b'\r');
+                    self.write_byte(b'\n');
+                },
                 _ => self.write_byte(byte)
             }
         }
 
         Ok(())
+    }
+}
+
+pub struct LockedUart {
+    inner: Mutex<MiniUart>
+}
+
+impl LockedUart {
+    pub const unsafe fn new() -> Self {
+        let uart = MiniUart::new();
+        Self {
+            inner: Mutex::new(uart)
+        }
+    }
+
+    pub fn init(&self) {
+        let mut locked = self.inner.lock();
+        locked.init();
+        drop(locked);
+    }
+
+    pub fn timeout(&mut self, ms: u32) {
+        let mut locked = self.inner.lock();
+        locked.timeout = Some(ms);
+        drop(locked);
+    }
+}
+
+use crate::console;
+use crate::console::ConsoleResult;
+
+impl console::Write for LockedUart {
+
+    fn write_byte(&mut self, byte: u8) {
+        let mut locked = self.inner.lock();
+        locked.write_byte(byte);
+        drop(locked);
+    }
+
+    fn write_fmt(&self, args:fmt::Arguments) -> fmt::Result {
+        let mut locked = self.inner.lock();
+        let result = locked.write_fmt(args);
+        drop(locked);
+        result
+    }
+}
+
+impl console::Read for LockedUart {
+    fn read_byte(&self) -> ConsoleResult<u8> {
+        let mut locked = self.inner.lock();
+        match locked.wait_for_byte() {
+            Ok(()) => {
+                let read = locked.read_byte();
+                drop(locked);
+                Ok(read)
+            },
+            Err(()) => {
+                drop(locked);
+                Err(ConsoleError::new(ConsoleErrorKind::TimedOut))
+            }
+        }        
     }
 }
 
