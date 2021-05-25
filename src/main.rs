@@ -5,7 +5,8 @@
 #![feature(format_args_nl)]
 #![feature(global_asm)]
 
-use crate::{console::Write, pi::{UART_CONSOLE, drivers::timer::spin_sleep_ms}};
+use crate::pi::{drivers::timer::spin_sleep_ms};
+use core::fmt::Write;
 
 mod pi;
 mod panic_wait;
@@ -14,6 +15,7 @@ mod runtime_init;
 mod memory;
 mod shell;
 mod xmodem;
+mod syncro;
 
 #[macro_use]
 mod console;
@@ -21,11 +23,33 @@ mod console;
 
 
 fn kernel_init() -> ! {
-
+    
+    use pi::UART_CONSOLE;
+    use console::{Read, Write};
     use xmodem::{ModemError, ErrorKind};
 
+    // unsafe { 
+    //     let mut uart = pi::drivers::uart::MiniUart::new();
+
+    //     uart.init();
+
+    //     let s = "hello world";
+
+    //     loop {
+    //         for b in s.bytes() {
+    //             uart.write_byte(b);
+    //         }
+    //     }
+    // };
+
+    
+
+
+
+
     // Must initialize the UART device before we can print to the console
-    pi::UART_CONSOLE.init();
+    // Probably worth splitting this out into a separate init function that is unsafe
+    unsafe { UART_CONSOLE.init(); }
 
     // let mut gpio_10 = pi::drivers::gpio::GpioPin::new(10).into_output();
 
@@ -37,10 +61,10 @@ fn kernel_init() -> ! {
     // }
 
     //kprintln available past this point
-    for i in 1..10 {UART_CONSOLE.write_byte(b'a');}
+
+    UART_CONSOLE.write_fmt(format_args!("{}", "Hello, World")).unwrap();
     
-    UART_CONSOLE.write_fmt(format_args!("{}", "Hi"));
-    kprint!("Waiting for new kernel");
+    kprintln!("Waiting for new kernel");
 
     let kernel_addr: *mut u8 = pi::memory::map::KERNEL_LOAD_ADDRESS as *mut u8;
     // Boot Core Stack End is same address as bootloader start address & end of memory space for Kernel
@@ -61,7 +85,7 @@ fn kernel_init() -> ! {
             }
             Err(err) => match err.kind() {
                 ErrorKind::ConsoleError => {
-                    kprint!("UART Timed Out");
+                    kprintln!("UART Timed Out");
                     continue
                 },
                 _ => kprintln!("Error: {:?}", err)

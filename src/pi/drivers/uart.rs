@@ -1,12 +1,13 @@
 // I should probably make this the Auxillary peripherals module but I'm only going to do
 // MiniUart for now so I can start chainloading my kernel
 
-use crate::{console::{ConsoleError, ConsoleErrorKind}, pi::memory};
+use crate::{
+    console, console::{ConsoleError, ConsoleErrorKind, ConsoleResult}, pi::memory, syncro::{NoLock, Lockable},
+};
 use super::{common::StaticRef, timer::SYSTEM_TIMER};
 use tock_registers::{register_bitfields, register_structs};
 use tock_registers::registers::*;
 use super::gpio::*;
-use spin::Mutex;
 
 use core::fmt::{self, Write};
 
@@ -25,21 +26,17 @@ impl MiniUart {
 
     pub fn init(&mut self) {
         self.registers.auxenable.write(AUXENABLE::UART::SET);
-        self.registers.ier.set(0);
-        self.registers.cntl.set(0);
-        self.registers.lcr.set(3);
-        self.registers.mcr.set(0);
-        self.registers.ier.set(0);
-
-        self.registers.iir.modify(IIR::CLEAR::TxClr + IIR::CLEAR::RxClr);
-        let divisor: u32 = (500000000/(115200*8)) - 1;
-        self.registers.baud.write(BAUD::RATE.val(divisor));
 
         let mut pin14 = GpioPin::new(14).into_alt(Function::Alt5);
         pin14.set_no_pud();
 
         let mut pin15 = GpioPin::new(15).into_alt(Function::Alt5);
         pin15.set_no_pud();
+
+        self.registers.lcr.set(3);
+
+        let divisor: u32 = (500000000/(115200*8)) - 1;
+        self.registers.baud.write(BAUD::RATE.val(divisor));
         
         self.registers.cntl.modify(CNTL::RXENABLE::SET + CNTL::TXENABLE::SET);
     }
@@ -115,63 +112,51 @@ impl fmt::Write for MiniUart {
 }
 
 pub struct LockedUart {
-    inner: Mutex<MiniUart>
+    inner: NoLock<MiniUart>,
 }
 
 impl LockedUart {
+    /// Create a UART device encapsulated by a concurrent lock
+    ///
+    /// Doesn't actually do anything right now as the lock isn't a lock
+    /// No need to pass in a memory address as it will always be the same on the 
+    /// Rpi 4. 
+    ///
+    /// This could be made more generic for other microcontrollers if I allowed other register maps
+    /// or memory addresses.
     pub const unsafe fn new() -> Self {
-        let uart = MiniUart::new();
         Self {
-            inner: Mutex::new(uart)
+            inner: NoLock::new(MiniUart::new()),
         }
     }
 
-    pub fn init(&self) {
-        let mut locked = self.inner.lock();
-        locked.init();
-        drop(locked);
+    pub unsafe fn init(&self) -> Result<(),()> {
+        self.inner.lock(|inner| inner.init());
+
+        Ok(())
     }
 
     pub fn timeout(&mut self, ms: u32) {
-        let mut locked = self.inner.lock();
-        locked.timeout = Some(ms);
-        drop(locked);
+        self.inner.lock(|inner| inner.timeout(ms));
     }
 }
 
-use crate::console;
-use crate::console::ConsoleResult;
-
 impl console::Write for LockedUart {
-
     fn write_byte(&mut self, byte: u8) {
-        let mut locked = self.inner.lock();
-        locked.write_byte(byte);
-        drop(locked);
+        self.inner.lock(|inner| inner.write_byte(byte));
     }
-
-    fn write_fmt(&self, args:fmt::Arguments) -> fmt::Result {
-        let mut locked = self.inner.lock();
-        let result = locked.write_fmt(args);
-        drop(locked);
-        result
+    fn write_fmt(&self, args: core::fmt::Arguments) -> fmt::Result {
+        self.inner.lock(|inner| fmt::Write::write_fmt(inner, args))
     }
 }
 
 impl console::Read for LockedUart {
     fn read_byte(&self) -> ConsoleResult<u8> {
-        let mut locked = self.inner.lock();
-        match locked.wait_for_byte() {
-            Ok(()) => {
-                let read = locked.read_byte();
-                drop(locked);
-                Ok(read)
-            },
-            Err(()) => {
-                drop(locked);
-                Err(ConsoleError::new(ConsoleErrorKind::TimedOut))
-            }
-        }        
+        self.inner.lock(
+            |inner| match inner.wait_for_byte() {
+                Ok(()) => Ok(inner.read_byte()),
+                Err(()) => Err(ConsoleError::new(ConsoleErrorKind::TimedOut))
+        })
     }
 }
 

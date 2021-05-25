@@ -1,5 +1,4 @@
 use core::fmt;
-
 use crate::pi::UART_CONSOLE;
 
 pub type ConsoleResult<T> = core::result::Result<T, ConsoleError>;
@@ -30,7 +29,6 @@ pub trait Write {
     fn write_byte(&mut self, byte: u8);
 
     fn write_fmt(&self, args: fmt::Arguments) -> fmt::Result;
-
 }
 
 pub trait Read {

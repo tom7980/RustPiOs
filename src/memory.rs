@@ -48,8 +48,7 @@ impl<T> MemCursorWriteOnly<T> where T: From<u8> {
             
             if ptr > end {
                 //Just don't do anything - this is not great implementation and I should really return
-                //an error here but my trait implementation doesn't return a result and I don't want to
-                //go back and update it because I've already implemented it on a few things (bad practice really)
+                //an error here but my trait implementation doesn't return a result
             }
             else{
                 core::ptr::write_volatile(ptr, T::from(byte));
