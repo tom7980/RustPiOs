@@ -19,7 +19,7 @@ pub struct MiniUart {
 impl MiniUart {
     pub const unsafe fn new() -> MiniUart {
         MiniUart{
-            registers: unsafe { StaticRef::new(memory::map::AUX_START as *const MiniRegisters) },
+            registers: unsafe { StaticRef::new(memory::map::AUX_START) },
             timeout: None
         }
     }
@@ -136,7 +136,7 @@ impl LockedUart {
         Ok(())
     }
 
-    pub fn timeout(&mut self, ms: u32) {
+    pub fn timeout(&self, ms: u32) {
         self.inner.lock(|inner| inner.timeout(ms));
     }
 }
@@ -161,7 +161,7 @@ impl console::Read for LockedUart {
 }
 
 register_structs!{
-    MiniRegisters{
+    pub MiniRegisters{
         (0x000 => _r1),
         (0x004 => auxenable: ReadWrite<u32, AUXENABLE::Register>),
         (0x008 => _r2),

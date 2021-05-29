@@ -35,6 +35,20 @@ pub trait Read {
     fn read_byte(&self) -> ConsoleResult<u8>;
 }
 
+impl<'a, T> Write for &'a T where T: Write {
+    fn write_byte(&mut self, byte: u8) {
+        self.write_byte(byte)
+    }
+    fn write_fmt(&self, args: fmt::Arguments) -> fmt::Result {
+        self.write_fmt(args)
+    }
+}
+impl<'a, T> Read for &'a T where T: Read{
+    fn read_byte(&self) -> ConsoleResult<u8> {
+        self.read_byte()
+    }
+}
+
 
 pub fn _print(args: fmt::Arguments) {
     UART_CONSOLE.write_fmt(args).unwrap();

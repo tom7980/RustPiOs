@@ -45,7 +45,7 @@ impl GpioPin<Uninitialized> {
     pub fn new(pin: u8) -> GpioPin<Uninitialized> {
         GpioPin {
             pin,
-            registers: unsafe { StaticRef::new(memory::map::GPIO_START as *const GpioRegisters) },
+            registers: unsafe { StaticRef::new(memory::map::GPIO_START) },
             _state: PhantomData
         }
     }

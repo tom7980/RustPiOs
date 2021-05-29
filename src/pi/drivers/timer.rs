@@ -73,7 +73,7 @@ impl Timer {
     pub const fn new() -> Timer {
         Timer{
             registers: unsafe { 
-                StaticRef::new(memory::map::TIMER_START as *const TimerBlock)
+                StaticRef::new(memory::map::TIMER_START)
             },
         }
     }
