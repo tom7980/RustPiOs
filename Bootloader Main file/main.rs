@@ -40,9 +40,9 @@ fn kernel_init() -> ! {
     loop {
         match xmodem::Xmodem::receive(pi::UART_CONSOLE, wrapped_kernel_memory) {
             Ok(_) => {
-                // I stole this but it basically turns the start adress of the new kernel into a function
-                // which we can call to enter into it - bonus this means I don't have to move the stack pointer
-                // or write assembly code
+                // This interprets a memory address as a function I can call from rust to jump to the new kernel
+                // TODO: Check the rust calling convention to ensure this doesn't introduce any weird errors with CPU registers
+                // I think perhaps I can call it as a naked function? 
                 let kernel: fn() -> ! = unsafe { core::mem::transmute(kernel_addr) };
                 kernel()
             }

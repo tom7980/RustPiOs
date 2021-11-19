@@ -7,8 +7,6 @@ unsafe fn zero_bss(){
 }
 
 
-pub unsafe fn runtime_init() -> ! {
+pub unsafe fn runtime_init(){
     zero_bss();
-
-    crate::kernel_init()
 }

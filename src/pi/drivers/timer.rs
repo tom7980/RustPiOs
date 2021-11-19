@@ -2,6 +2,7 @@ use crate::pi::memory;
 use super::common::StaticRef;
 use tock_registers::{register_bitfields, register_structs};
 use tock_registers::registers::*;
+use tock_registers::interfaces::*;
 
 register_bitfields!{
     u32,

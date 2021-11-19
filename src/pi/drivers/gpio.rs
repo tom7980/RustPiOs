@@ -3,6 +3,7 @@ use super::common::StaticRef;
 use tock_registers::{register_bitfields, register_structs};
 use tock_registers::registers::*;
 use core::marker::PhantomData;
+use tock_registers::interfaces::*;
 
 
 pub struct GpioPin<State> {

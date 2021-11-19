@@ -47,8 +47,7 @@ impl<T> MemCursorWriteOnly<T> where T: From<u8> {
 
             
             if ptr > end {
-                //Just don't do anything - this is not great implementation and I should really return
-                //an error here but my trait implementation doesn't return a result
+                //Just don't do anything
             }
             else{
                 core::ptr::write_volatile(ptr, T::from(byte));
@@ -59,7 +58,7 @@ impl<T> MemCursorWriteOnly<T> where T: From<u8> {
 }
 
 
-// We're reusing the console write trait as that it what I'm using on my xmodem implementation
+// We're reusing the console write trait as that is what I'm using on my xmodem implementation
 //
 // I should really write a separate IO::Write trait that has more useful methods and use that for my xmodem 
 // but I'm in too deep now and I'd just like to get it to work first - note for the future, write better abstracted traits

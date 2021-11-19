@@ -8,7 +8,6 @@ edition = "2018"
 
 [dependencies]
 
-tock-registers = { version = "0.6.x" }
-cortex-a = { version = "5.x.x" }
+tock-registers = { version = "0.7.x" }
+cortex-a = { version = "6.x.x" }
 spin = { version = "0.9.x" }
-staticvec = { version = "0.10.6", default-features = false }

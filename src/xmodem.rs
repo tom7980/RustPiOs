@@ -6,7 +6,7 @@ const ACK: u8 = 0x06;
 const NAK: u8 = 0x15;
 const CAN: u8 = 0x18;
 
-type Result<T> = core::result::Result<T, ModemError>;
+type MResult<T> = core::result::Result<T, ModemError>;
 
 #[derive(Debug)]
 pub struct ModemError {
@@ -59,7 +59,7 @@ impl Xmodem<()> {
     ///
     /// Returns the number of bytes written to `to`, excluding padding zeroes.
     // #[inline]
-    // pub fn transmit<R, W>(data: R, to: W) -> Result<usize>
+    // pub fn transmit<R, W>(data: R, to: W) -> MResult<usize>
     //     where W: console::Read + console::Write, R: console::Read
     // {
     //     Xmodem::transmit_with_progress(data, to)
@@ -73,7 +73,7 @@ impl Xmodem<()> {
     /// the transmission. See the [`Progress`] enum for more information.
     ///
     /// Returns the number of bytes written to `to`, excluding padding zeroes.
-    // pub fn transmit_with_progress<R, W>(mut data: R, to: W) -> Result<usize>
+    // pub fn transmit_with_progress<R, W>(mut data: R, to: W) -> MResult<usize>
     //     where W: console::Read + console::Write, R: console::Read
     // {
     //     let mut transmitter = Xmodem::new(to);
@@ -106,7 +106,7 @@ impl Xmodem<()> {
     /// Receives `data` from `from` using the XMODEM protocol and writes it into
     /// `into`. Returns the number of bytes read from `from`, a multiple of 128.
     #[inline]
-    pub fn receive<R, W>(from: R, into: W) -> Result<usize>
+    pub fn receive<R, W>(from: R, into: W) -> MResult<usize>
        where R: console::Read + console::Write, W: console::Write
     {
         Xmodem::receive_with_progress(from, into)
@@ -117,7 +117,7 @@ impl Xmodem<()> {
     ///
     /// The function `f` is used as a callback to indicate progress throughout
     /// the reception. See the [`Progress`] enum for more information.
-    pub fn receive_with_progress<R, W>(from: R, mut into: W) -> Result<usize>
+    pub fn receive_with_progress<R, W>(from: R, mut into: W) -> MResult<usize>
        where R: console::Read + console::Write, W: console::Write
     {
         let mut receiver = Xmodem::new(from);
@@ -160,7 +160,7 @@ impl<T: console::Read + console::Write> Xmodem<T> {
     ///
     /// Returns an error if reading from the inner stream fails or if
     /// `abort_on_can` is `true` and the read byte is `CAN`.
-    fn read_byte(&mut self, abort_on_can: bool) -> Result<u8> {
+    fn read_byte(&mut self, abort_on_can: bool) -> MResult<u8> {
         let byte = self.inner.read_byte()?;
 
         if abort_on_can && byte == CAN {
@@ -175,7 +175,7 @@ impl<T: console::Read + console::Write> Xmodem<T> {
     /// # Errors
     ///
     /// Returns an error if writing to the inner stream fails.
-    fn write_byte(&mut self, byte: u8) -> Result<()> {
+    fn write_byte(&mut self, byte: u8) -> MResult<()> {
         self.inner.write(&[byte]);
 
         Ok(())
@@ -193,7 +193,7 @@ impl<T: console::Read + console::Write> Xmodem<T> {
     /// Returns an error if reading from the inner stream fails, if the read
     /// byte was not `byte`, if the read byte was `CAN` and `byte` is not `CAN`,
     /// or if writing the `CAN` byte failed on byte mismatch.
-    fn expect_byte_or_cancel(&mut self, byte: u8, expected: &'static str) -> Result<u8> {
+    fn expect_byte_or_cancel(&mut self, byte: u8, expected: &'static str) -> MResult<u8> {
         let read = self.inner.read_byte()?;
 
         if read != byte {
@@ -218,7 +218,7 @@ impl<T: console::Read + console::Write> Xmodem<T> {
     /// byte was not `byte`. If the read byte differed and was `CAN`, an error
     /// of `ConnectionAborted` is returned. Otherwise, the error kind is
     /// `InvalidData`.
-    fn expect_byte(&mut self, byte: u8, expected: &'static str) -> Result<u8> {
+    fn expect_byte(&mut self, byte: u8, expected: &'static str) -> MResult<u8> {
         let read = self.inner.read_byte()?;
 
         if read != byte {
@@ -254,7 +254,7 @@ impl<T: console::Read + console::Write> Xmodem<T> {
     /// received when not expected.
     ///
     /// An error of kind `UnexpectedEof` is returned if `buf.len() < 128`.
-    pub fn read_packet(&mut self, buf: &mut [u8]) -> Result<usize> {
+    pub fn read_packet(&mut self, buf: &mut [u8]) -> MResult<usize> {
         let mut bytes_read = 0;
         if buf.len() < 128 {
             return Err(ModemError::new(ErrorKind::UnexpectedEof))
@@ -331,7 +331,7 @@ impl<T: console::Read + console::Write> Xmodem<T> {
     // received when not expected.
     //
     // An error of kind `Interrupted` is returned if a packet checksum fails.
-    // pub fn write_packet(&mut self, buf: &[u8]) -> Result<usize> {
+    // pub fn write_packet(&mut self, buf: &[u8]) -> MResult<usize> {
     //     let mut bytes_written = 0;
     //     if buf.len() < 128 && buf.len() != 0 {
     //         return Err(io::Error::new(io::ErrorKind::UnexpectedEof,"invalid buf length"))
@@ -387,7 +387,7 @@ impl<T: console::Read + console::Write> Xmodem<T> {
     //
     // It is considered an error if not all bytes could be written due to I/O
     // errors or EOF being reached.
-//     pub fn flush(&mut self) -> Result<()> {
+//     pub fn flush(&mut self) -> MResult<()> {
 //         self.inner.flush()
 //     }
 }

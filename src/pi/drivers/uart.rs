@@ -7,6 +7,7 @@ use crate::{
 use super::{common::StaticRef, timer::SYSTEM_TIMER};
 use tock_registers::{register_bitfields, register_structs};
 use tock_registers::registers::*;
+use tock_registers::interfaces::*;
 use super::gpio::*;
 
 use core::fmt::{self, Write};
@@ -15,6 +16,8 @@ pub struct MiniUart {
     registers: StaticRef<MiniRegisters>,
     timeout: Option<u32>
 }
+
+pub use MiniUart as PanicOut;
 
 impl MiniUart {
     pub const unsafe fn new() -> MiniUart {
@@ -25,6 +28,9 @@ impl MiniUart {
     }
 
     pub fn init(&mut self) {
+        // we might be in a panic so flush the buffer
+        self.flush();
+        
         self.registers.auxenable.write(AUXENABLE::UART::SET);
 
         let mut pin14 = GpioPin::new(14).into_alt(Function::Alt5);
@@ -93,6 +99,10 @@ impl MiniUart {
             _ => self.write_byte(temp)
         }
     }
+
+    fn flush(&self) {
+        while !self.registers.lsr.matches_any(LSR::TXEMPTY::SET) {};
+    }
 }
 
 impl fmt::Write for MiniUart {
@@ -138,6 +148,10 @@ impl LockedUart {
 
     pub fn timeout(&self, ms: u32) {
         self.inner.lock(|inner| inner.timeout(ms));
+    }
+
+    pub fn flush(&self) {
+        self.inner.lock(|inner| inner.flush());
     }
 }
 

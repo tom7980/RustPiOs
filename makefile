@@ -4,9 +4,9 @@ LINKER_FILE = src/pi/link.ld
 
 KERNEL_ELF = target/$(TARGET)/release/myPiOs
 
-COMPILER_ARGS = --target=$(TARGET) 
+COMPILER_ARGS = --target=$(TARGET)
 
-RUSTFLAGS          = -C link-arg=$(LINKER_FILE) -C debuginfo=2
+RUSTFLAGS = -C link-arg=$(LINKER_FILE) -C debuginfo=2
 
 RUSTC_CMD = cargo rustc $(COMPILER_ARGS) --release
 OBJCOPY_CMD = rust-objcopy --strip-all -O binary
@@ -26,3 +26,6 @@ $(KERNEL_BIN): $(KERNEL_ELF)
 
 objdump:
 	@$(OBJDUMP_CMD) $(KERNEL_ELF)
+
+install:
+	ttywrite -i $(KERNEL_BIN) /dev/$(USB)

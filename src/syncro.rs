@@ -17,6 +17,11 @@ where
         inner: UnsafeCell<T>,
 }
 
+enum Guard {
+    Locked,
+    Unlocked,
+}
+
 unsafe impl<T> Send for NoLock<T> where T: ?Sized + Send {}
 unsafe impl<T> Sync for NoLock<T> where T: ?Sized + Send {}
 

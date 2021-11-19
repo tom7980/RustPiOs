@@ -9,6 +9,8 @@ extern "Rust" {
 pub mod map {
     use core::usize;
 
+    pub const ATAG_LOAD_ADDRESS: usize      = 0x100;
+
     pub const KERNEL_LOAD_ADDRESS: usize    = 0x0008_0000;
 
     pub const BOOT_CORE_STACK_END: usize    = 0x0200_0000;
